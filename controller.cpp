@@ -1,27 +1,29 @@
 #include <Servo.h>
 
+/* This code is created by Javier, Orlando, and Yamil to simulate the operation of the pitch control in a wind turbine */
+// Last update: April 11, 2024 | 12:44 PM
 
+// Constants:
+const int Preset[6] = { 20, 0, 90, 0, 5000, 0 };  // {0 = Max Wind|1 = Min Wind|2 = Max Angle|3 = Min Angle|4 = Max RPM|5 = Min RPM}
 
-//Constants:
-const int Preset[6] = { 20, 0, 90, 0, 5000, 0 };  //{0 = Max Wind|1 = Min Wind|2 = Max Angle|3 = Min Angle|4 = Max RPM|5 = Min RPM}
+// Variables:
 
-//Variables:
+// Inputs:
+int An_Sensor = A0;      // Anemometer (Analog value)
+int TM_Sensor = 1;       // Tachometer (Digital value)
+int V_Sensor = 2;        // Voltage sensor (Digital value)
+int C_Sensor = 3;        // Current sensor (Digital value)
+int S_Sensor_Gate = 4;   // Sound sensor (Digital Value)
+int S_Sensor_Enve = A1;  // Sound sensor (Analog Value)
 
-//Inputs:
-int An_Sensor = A0;      //Anenometer (Analog value)
-int TM_Sensor = 1;       //Tacometer (Digital value)
-int V_Sensor = 2;        //Voltage sensor (Digital value)
-int C_Sensor = 3;        //Current sensor (Digital value)
-int S_Sensor_Gate = 4;   //Sound sensor (Digital Value)
-int S_Sensor_Enve = A1;  //Sound sensor (Analog Value)
+// Outputs:
+Servo Blades;  // Servo motor for controlling the pitch angle of the blades
 
-//Outputs:
-Servo Blades;  //Servo motor for control the pitch angle of the blades
-
-
+unsigned long previousMillis = 0;  // Store the last time in milliseconds
+unsigned long counter = 0;         // Counter for RPM calculation
+double rpm = 0;
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(9600);
   Serial.println("System starting...");
   Serial.println("Configuring Inputs and Outputs...");
@@ -45,16 +47,15 @@ void setup() {
 void loop() {
   int W_Speed, V_Detected, E_Sound, G_Sound, P_Angle;
 
-  W_Speed = WindSpeed();         //measure the wind speed
-  E_Sound = Sound_Envelope();    //measure the sound level
-  G_Sound = Sound_Gate();        //measure the sound level
-  V_Detected = VoltageDetect();  //Detect the max output voltage
+  W_Speed = WindSpeed();         // Measure the wind speed
+  E_Sound = Sound_Envelope();    // Measure the sound level
+  G_Sound = Sound_Gate();        // Measure the sound level
+  V_Detected = VoltageDetect();  // Detect the max output voltage
 
-  //Change the wind speed to pitch angle:
+  // Change the wind speed to pitch angle:
   P_Angle = map(W_Speed, Preset[1], Preset[0], Preset[3], Preset[2]);
   Serial.print(" Pitch Angle: ");
   Serial.println(P_Angle);
-
 
   if (G_Sound == 1 || E_Sound > 100) {
     Blades.write(90);
@@ -62,11 +63,15 @@ void loop() {
     Blades.write(0);
   }
 
-  delay(1000);
+  unsigned long takenTime = millisToSeconds(time());
+  if (takenTime >= 60) {  // Only calculate RPM every 60 seconds
+    RPMCounter();          // Calculate RPM
+    previousMillis = millis();  // Reset the timer
+    counter = 0;                // Reset the counter for the next minute
+  }
 }
 
 int WindSpeed() {
-  //This funtion is for read and convert the analog voltage of the sensor into wind speed (m/s)
   int A_Val, WindSpeed;
   A_Val = analogRead(An_Sensor);
   WindSpeed = map(A_Val, 0, 1023, Preset[1], Preset[0]);
@@ -75,34 +80,47 @@ int WindSpeed() {
 
   return WindSpeed;
 }
-int Vibration() {  // This function is for read the value of the accelerometer
+
+int Vibration() {  // This function is for reading the value of the accelerometer
+  // Implement your vibration reading code here
 }
-int Sound_Gate() {  //This function is for read the value of the digital output of the sound sensor
-  int D_Val, G_Sound;
-  D_Val = digitalRead(S_Sensor_Gate);
+
+int Sound_Gate() {  // This function is for reading the value of the digital output of the sound sensor
+  int D_Val = digitalRead(S_Sensor_Gate);
   Serial.print(" Sound Level Gate: ");
   Serial.print(D_Val);
-  G_Sound = D_Val;
-  return G_Sound;
+  return D_Val;
 }
-int Sound_Envelope() {  // This function is for read the value of the analog output of the sound sensor
 
-  int A_Val, E_Sound;
-  A_Val = analogRead(S_Sensor_Enve);
-  //E_Sound = map(A_Val,0,1023,Preset[1],Preset[0]);
-
+int Sound_Envelope() {  // This function is for reading the value of the analog output of the sound sensor
+  int A_Val = analogRead(S_Sensor_Enve);
   Serial.print(" Sound Level Envelope: ");
   Serial.print(A_Val);
-  E_Sound = A_Val;
-  return E_Sound;
+  return A_Val;
 }
-int RPMCounter() {  // This function is read the revolutions of the blade and convert in RPM
+
+void RPMCounter() {  // This function reads the revolutions of the blade and converts them into RPM
+  rpm = counter*60; // Since counter is incremented per revolution per second
+  Serial.print("RPM: ");
+  Serial.println(rpm);
+}
+
+unsigned long time() {
+  unsigned long currentMillis = millis();
+  return currentMillis - previousMillis;  // Calculate time elapsed since last measurement
 }
 
 int VoltageDetect() {
-  int VoltDetected;
-  VoltDetected = digitalRead(V_Sensor);
-  return VoltDetected;
+  return digitalRead(V_Sensor);
 }
+
 int CurrentDetect() {
+  // Implement your current detection code here
+}
+
+unsigned long millisToSeconds(unsigned long millisTime) {
+   if (millisTime == 0) {
+    return 0;
+  }
+  return millisTime / 1000;
 }
