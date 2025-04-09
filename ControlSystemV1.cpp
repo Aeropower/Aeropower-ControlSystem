@@ -5,14 +5,23 @@
 #include <ESP32Servo.h>
 #include <ESP32PWM.h>
 //
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+const int targetRPM = 45;
+float integral = 0;
+const float Kd = 0.01;         
+const float Ki = 0.1;          
+const float dt = 0.5;         
+const float Kp = 0.5; 
+
 volatile unsigned long pulseCount = 0;
 QueueHandle_t rpmQueue;
 Servo blades;
 int servoPin = 21;
 int pushB = 13;
 hw_timer_t * timer = NULL;
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
 
 void IRAM_ATTR countPulse() {
     Serial.println("Interrupt");
@@ -44,12 +53,10 @@ void displayRPMTask(void *pvParameters) {
     }
 }
 
-
-
 void servoControl(double targetAngle) {
     currentAngle = blades.read();
     int step;
-    if(targetAdress > currentAngle) {
+    if(targetAngle > currentAngle) {
         step = 10;
     } else {
         step = -10;
@@ -60,6 +67,33 @@ void servoControl(double targetAngle) {
         delay(15);
     }
 }
+
+void PIDTask(void *pvParameters) {  
+    double receivedRPM;
+    
+    while (1) {
+        if (xQueueReceive(rpmQueue, &receivedRPM, portMAX_DELAY)) {
+          
+          
+          float error = targetPosition - receivedRPM;
+          float proportional = Kp * error;
+          integral += Ki * error * dt;
+          float derivative = Kd * (error - previousError) / dt;
+          
+          // Calculate the control output
+          float output = proportional + integral + derivative;
+          // Apply the control output to the servo
+        
+          servoControl(output);
+          previousError = error;
+
+        }
+        vTaskDelay(pdMS_TO_TICKS(dt * 1000));
+  
+}
+}
+
+
 
 void setup() {
     Serial.begin(921600);
