@@ -26,7 +26,7 @@ hw_timer_t * timer = NULL;
 
 
 void IRAM_ATTR countPulse() {
-    Serial.println("Interrupt");
+    
     pulseCount += 10;
 }
 
@@ -76,7 +76,7 @@ void PIDTask(void *pvParameters) {
     while (1) {
         if (xQueueReceive(rpmQueue, &receivedRPM, portMAX_DELAY)) {
           
-          
+          Serial.println("RPM Received in PIDTask"); // Depuración
           float error = targetRPM - receivedRPM;
           float proportional = Kp * error;
           integral += Ki * error * dt;
@@ -85,8 +85,9 @@ void PIDTask(void *pvParameters) {
           // Calculate the control output
           float output = proportional + integral + derivative;
           // Apply the control output to the servo
-        
+           Serial.print("PID Output: "); // Corrección: faltaba texto
           servoControl(output);
+   
           previousError = error;
 
         }
@@ -106,7 +107,7 @@ void setup() {
     lcd.print("Initializing...");
 
     blades.attach(21, 500, 2500);  // Fixed servo attach range
-    blades.write(90);  // Set initial servo position
+      // Set initial servo position
 
     pinMode(13, INPUT);
     attachInterrupt(digitalPinToInterrupt(13), countPulse, FALLING);
