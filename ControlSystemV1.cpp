@@ -44,17 +44,20 @@ void displayRPMTask(void *pvParameters) {
     }
 }
 
-void servoTask(void *pvParameters) {
-    int angle = 0;
-    while (1) {
-        for (angle = 0; angle <= 180; angle += 10) {
-            blades.write(angle);
-            vTaskDelay(pdMS_TO_TICKS(500));  // Move in steps of 10 degrees every 500ms
-        }
-        for (angle = 180; angle >= 0; angle -= 10) {
-            blades.write(angle);
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
+
+
+void servoControl(double targetAngle) {
+    currentAngle = blades.read();
+    int step;
+    if(targetAdress > currentAngle) {
+        step = 10;
+    } else {
+        step = -10;
+    }
+    while(currentAngle!= targetAngle){
+        currentAngle += step;
+        blades.write(currentAngle);
+        delay(15);
     }
 }
 
