@@ -127,8 +127,8 @@ void setup() {
         Serial.println("Timer initialization failed!");
     }
 
+    xTaskCreate(PIDTask, "PID Calculation Task", 2048, NULL, 1, NULL);
     xTaskCreate(displayRPMTask, "Display RPM Task", 2048, NULL, 1, NULL);
-    xTaskCreate(servoTask, "Servo Task", 2048, NULL, 1, NULL);  // Updated servo task
 }
 
 void loop() {
