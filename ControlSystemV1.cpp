@@ -14,6 +14,7 @@ const float Kd = 0.01;
 const float Ki = 0.1;          
 const float dt = 0.5;         
 const float Kp = 0.5; 
+float previousError = 0;
 
 volatile unsigned long pulseCount = 0;
 QueueHandle_t rpmQueue;
@@ -53,8 +54,8 @@ void displayRPMTask(void *pvParameters) {
     }
 }
 
-void servoControl(double targetAngle) {
-    currentAngle = blades.read();
+void servoControl(float targetAngle) {
+    float currentAngle = blades.read();
     int step;
     if(targetAngle > currentAngle) {
         step = 10;
@@ -75,7 +76,7 @@ void PIDTask(void *pvParameters) {
         if (xQueueReceive(rpmQueue, &receivedRPM, portMAX_DELAY)) {
           
           
-          float error = targetPosition - receivedRPM;
+          float error = targetRPM - receivedRPM;
           float proportional = Kp * error;
           integral += Ki * error * dt;
           float derivative = Kd * (error - previousError) / dt;
@@ -126,7 +127,7 @@ void setup() {
     } else {
         Serial.println("Timer initialization failed!");
     }
-
+    
     xTaskCreate(PIDTask, "PID Calculation Task", 2048, NULL, 1, NULL);
     xTaskCreate(displayRPMTask, "Display RPM Task", 2048, NULL, 1, NULL);
 }
