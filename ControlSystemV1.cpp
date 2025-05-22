@@ -32,7 +32,7 @@ void IRAM_ATTR onTimer() {
         rpm = (pulseCount * 60.0) / 5;  // Ensure divisor is nonzero
     }
     pulseCount = 0;
-    xQueueOverwriteFromISR(rpmQueue, &rpm, NULL); // Sobreescribe el valor
+    xQueueOverwriteFromISR(rpmQueue, &rpm, NULL); 
     Serial.println("RPM SENT");
 }
 
@@ -71,7 +71,7 @@ void PIDTask(void *pvParameters) {
     while (1) {
         if (xQueueReceive(rpmQueue, &receivedRPM, portMAX_DELAY)) {
           
-          Serial.println("RPM Received in PIDTask"); // Depuración
+          Serial.println("RPM Received in PIDTask"); 
           int error = targetRPM - receivedRPM;
           int  proportional = Kp * error;
           integral += Ki * error * dt;
@@ -83,7 +83,7 @@ void PIDTask(void *pvParameters) {
 
           // Apply the control output to the servo
            Serial.print("OUTPUT: ");
-           Serial.println(output); // Corrección: faltaba texto
+           Serial.println(output); 
           servoControl(output);
    
           previousError = error;
